@@ -1,0 +1,19 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test tools
+        run: brew install bats-core shellcheck shfmt
+      - name: Validate
+        run: make validate

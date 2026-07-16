@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test tools
+        run: brew install bats-core shellcheck shfmt
+      - name: Validate
+        run: make validate
+      - name: Create checksum
+        run: make checksum
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" bootstrap.sh bootstrap.sh.sha256 --generate-notes --verify-tag
