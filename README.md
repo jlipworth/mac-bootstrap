@@ -94,6 +94,7 @@ host.
 
 ## Releases
 
-Pushing a tag matching `v*` runs validation and creates a GitHub release with
-`bootstrap.sh` and `bootstrap.sh.sha256`. Review and tag releases explicitly;
-the workflow does not auto-increment versions.
+Pushing a tag matching `v*` builds a standalone script from the reviewed
+library, runs validation, and creates a GitHub release with `bootstrap.sh` and
+`bootstrap.sh.sha256`. Review and tag releases explicitly; the workflow does
+not auto-increment versions.
