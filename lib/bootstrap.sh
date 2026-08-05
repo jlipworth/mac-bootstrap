@@ -44,7 +44,8 @@ download_review_and_run() (
   trap 'rm -f "$tmp"' EXIT
 
   log "Downloading $name to a temporary file for verification."
-  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$url" --output "$tmp"
+  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$url" --output "$tmp" \
+    || die "$name download failed."
 
   if [[ -n "$expected_sha" ]]; then
     actual_sha="$(shasum -a 256 "$tmp" | awk '{print $1}')"
@@ -102,16 +103,23 @@ login_gh() {
   # Avoid gh's terminal UI: it can hang in remote terminals that do not answer
   # cursor-position queries. Authentication still happens in GitHub's browser
   # device flow, with the short-lived code copied to the local clipboard.
-  open https://github.com/login/device
+  open https://github.com/login/device || warn "Could not open the GitHub device page automatically; use the URL printed by gh."
   GH_PROMPT_DISABLED=1 gh auth login \
     --hostname github.com \
     --git-protocol https \
     --web \
     --clipboard
+  configure_gh_git
+}
+
+configure_gh_git() {
+  GH_PROMPT_DISABLED=1 gh auth setup-git --hostname github.com \
+    || die "GitHub authentication succeeded but the Git HTTPS credential helper could not be configured."
 }
 
 authenticate_gh() {
   if gh auth status --hostname github.com >/dev/null 2>&1; then
+    configure_gh_git
     log "GitHub CLI is authenticated."
     return
   fi

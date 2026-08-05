@@ -67,6 +67,27 @@ teardown() { teardown_test_env; }
   [[ "$output" == *"open args=https://github.com/login/device"* ]]
   [[ "$output" == *"GH_PROMPT_DISABLED=1"* ]]
   [[ "$output" == *"auth login --hostname github.com --git-protocol https --web --clipboard"* ]]
+  [[ "$output" == *"auth setup-git --hostname github.com"* ]]
+}
+
+@test "GitHub login continues when the device page cannot be opened" {
+  mock_command open 'exit 1'
+  mock_command gh 'printf "gh args=%s\n" "$*"'
+  run login_gh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Could not open the GitHub device page automatically"* ]]
+  [[ "$output" == *"auth login --hostname github.com"* ]]
+  [[ "$output" == *"auth setup-git --hostname github.com"* ]]
+}
+
+@test "existing GitHub authentication repairs the Git credential helper" {
+  mock_command gh '
+    if [[ "$*" == "auth status --hostname github.com" ]]; then exit 0; fi
+    printf "gh args=%s\n" "$*"
+  '
+  run authenticate_gh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"auth setup-git --hostname github.com"* ]]
 }
 
 @test "failed Codex authentication stops in noninteractive mode" {
@@ -77,14 +98,19 @@ teardown() { teardown_test_env; }
 }
 
 @test "download refuses a checksum mismatch before execution" {
+  export TMPDIR="$TEST_ROOT/tmp"
+  mkdir -p "$TMPDIR"
   mock_command curl 'printf "echo should-not-run" > "${@: -1}"'
   run download_review_and_run test-installer https://example.invalid/install.sh deadbeef
   [ "$status" -ne 0 ]
   [[ "$output" == *"checksum mismatch"* ]]
   [[ "$output" != *"should-not-run"* ]]
+  [ -z "$(find "$TMPDIR" -type f -name 'mac-bootstrap.*' -print -quit)" ]
 }
 
 @test "download cleanup does not leak a RETURN trap into its caller" {
+  export TMPDIR="$TEST_ROOT/tmp"
+  mkdir -p "$TMPDIR"
   mock_command curl 'printf "exit 0\n" > "${@: -1}"'
   run bash -u -c '
     source "$1"
@@ -94,6 +120,25 @@ teardown() { teardown_test_env; }
   ' _ "$BATS_TEST_DIRNAME/../lib/bootstrap.sh"
   [ "$status" -eq 0 ]
   [[ "$output" != *"unbound variable"* ]]
+  [ -z "$(find "$TMPDIR" -type f -name 'mac-bootstrap.*' -print -quit)" ]
+}
+
+@test "download cleanup removes the temporary file after curl failure" {
+  export TMPDIR="$TEST_ROOT/tmp"
+  mkdir -p "$TMPDIR"
+  mock_command curl 'printf "partial" > "${@: -1}"; exit 22'
+  run download_review_and_run test-installer https://example.invalid/install.sh ""
+  [ "$status" -ne 0 ]
+  [ -z "$(find "$TMPDIR" -type f -name 'mac-bootstrap.*' -print -quit)" ]
+}
+
+@test "download cleanup removes the temporary file after installer failure" {
+  export TMPDIR="$TEST_ROOT/tmp"
+  mkdir -p "$TMPDIR"
+  mock_command curl 'printf "exit 42\n" > "${@: -1}"'
+  run download_review_and_run test-installer https://example.invalid/install.sh ""
+  [ "$status" -eq 42 ]
+  [ -z "$(find "$TMPDIR" -type f -name 'mac-bootstrap.*' -print -quit)" ]
 }
 
 @test "existing checkout with wrong origin is rejected" {
