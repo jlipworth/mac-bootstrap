@@ -59,6 +59,16 @@ teardown() { teardown_test_env; }
   [[ "$output" == *"requires an interactive terminal"* ]]
 }
 
+@test "GitHub login uses a terminal-independent browser flow" {
+  mock_command open 'printf "open args=%s\n" "$*"'
+  mock_command gh 'printf "GH_PROMPT_DISABLED=%s args=%s\n" "${GH_PROMPT_DISABLED:-}" "$*"'
+  run login_gh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"open args=https://github.com/login/device"* ]]
+  [[ "$output" == *"GH_PROMPT_DISABLED=1"* ]]
+  [[ "$output" == *"auth login --hostname github.com --git-protocol https --web --clipboard"* ]]
+}
+
 @test "failed Codex authentication stops in noninteractive mode" {
   mock_command codex 'exit 1'
   run authenticate_codex
@@ -72,6 +82,18 @@ teardown() { teardown_test_env; }
   [ "$status" -ne 0 ]
   [[ "$output" == *"checksum mismatch"* ]]
   [[ "$output" != *"should-not-run"* ]]
+}
+
+@test "download cleanup does not leak a RETURN trap into its caller" {
+  mock_command curl 'printf "exit 0\n" > "${@: -1}"'
+  run bash -u -c '
+    source "$1"
+    download_review_and_run test-installer https://example.invalid/install.sh ""
+    later_function() { :; }
+    later_function
+  ' _ "$BATS_TEST_DIRNAME/../lib/bootstrap.sh"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"unbound variable"* ]]
 }
 
 @test "existing checkout with wrong origin is rejected" {

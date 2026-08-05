@@ -37,11 +37,11 @@ require_clt() {
   die "Complete the Command Line Tools dialog, then re-run the bootstrap."
 }
 
-download_review_and_run() {
+download_review_and_run() (
   local name="$1" url="$2" expected_sha="$3"
   local tmp actual_sha
   tmp="$(mktemp "${TMPDIR:-/tmp}/mac-bootstrap.XXXXXX")"
-  trap 'rm -f "$tmp"' RETURN
+  trap 'rm -f "$tmp"' EXIT
 
   log "Downloading $name to a temporary file for verification."
   curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$url" --output "$tmp"
@@ -55,7 +55,7 @@ download_review_and_run() {
   fi
 
   /bin/bash "$tmp"
-}
+)
 
 activate_homebrew() {
   if command_exists brew; then
@@ -98,13 +98,25 @@ install_codex() {
   command_exists codex || die "Codex installer completed but codex is not available."
 }
 
+login_gh() {
+  # Avoid gh's terminal UI: it can hang in remote terminals that do not answer
+  # cursor-position queries. Authentication still happens in GitHub's browser
+  # device flow, with the short-lived code copied to the local clipboard.
+  open https://github.com/login/device
+  GH_PROMPT_DISABLED=1 gh auth login \
+    --hostname github.com \
+    --git-protocol https \
+    --web \
+    --clipboard
+}
+
 authenticate_gh() {
   if gh auth status --hostname github.com >/dev/null 2>&1; then
     log "GitHub CLI is authenticated."
     return
   fi
-  is_interactive || die "GitHub authentication requires an interactive terminal. Run: gh auth login --hostname github.com --git-protocol https --web"
-  gh auth login --hostname github.com --git-protocol https --web
+  is_interactive || die "GitHub authentication requires an interactive terminal. Run: GH_PROMPT_DISABLED=1 gh auth login --hostname github.com --git-protocol https --web --clipboard"
+  login_gh
   gh auth status --hostname github.com >/dev/null 2>&1 || die "GitHub authentication was not completed."
 }
 
