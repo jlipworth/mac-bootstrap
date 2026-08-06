@@ -101,7 +101,12 @@ teardown() { teardown_test_env; }
   export TMPDIR="$TEST_ROOT/tmp"
   mkdir -p "$TMPDIR"
   mock_command curl 'printf "echo should-not-run" > "${@: -1}"'
-  run download_review_and_run test-installer https://example.invalid/install.sh deadbeef
+  # Exercise the macOS system Bash explicitly; its 3.2 EXIT-trap scoping
+  # differs from newer Homebrew Bash releases.
+  run /bin/bash -u -c '
+    source "$1"
+    download_review_and_run test-installer https://example.invalid/install.sh deadbeef
+  ' _ "$BATS_TEST_DIRNAME/../lib/bootstrap.sh"
   [ "$status" -ne 0 ]
   [[ "$output" == *"checksum mismatch"* ]]
   [[ "$output" != *"should-not-run"* ]]
@@ -127,7 +132,10 @@ teardown() { teardown_test_env; }
   export TMPDIR="$TEST_ROOT/tmp"
   mkdir -p "$TMPDIR"
   mock_command curl 'printf "partial" > "${@: -1}"; exit 22'
-  run download_review_and_run test-installer https://example.invalid/install.sh ""
+  run /bin/bash -u -c '
+    source "$1"
+    download_review_and_run test-installer https://example.invalid/install.sh ""
+  ' _ "$BATS_TEST_DIRNAME/../lib/bootstrap.sh"
   [ "$status" -ne 0 ]
   [ -z "$(find "$TMPDIR" -type f -name 'mac-bootstrap.*' -print -quit)" ]
 }

@@ -39,9 +39,13 @@ require_clt() {
 
 download_review_and_run() (
   local name="$1" url="$2" expected_sha="$3"
-  local tmp actual_sha
+  local tmp actual_sha cleanup
   tmp="$(mktemp "${TMPDIR:-/tmp}/mac-bootstrap.XXXXXX")"
-  trap 'rm -f "$tmp"' EXIT
+  # Capture the quoted path in the trap command now. Bash 3.2 drops function
+  # locals before running an EXIT trap when die exits, as it does on macOS.
+  printf -v cleanup 'rm -f -- %q' "$tmp"
+  # shellcheck disable=SC2064  # Expansion now is required for Bash 3.2 cleanup.
+  trap "$cleanup" EXIT
 
   log "Downloading $name to a temporary file for verification."
   curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 "$url" --output "$tmp" \
