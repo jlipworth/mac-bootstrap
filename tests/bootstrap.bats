@@ -252,6 +252,7 @@ teardown() { teardown_test_env; }
   export MAC_SETUP_CHECKOUT="$TEST_ROOT/Projects/mac-setup"
   run print_handoff
   [ "$status" -eq 0 ]
+  [[ "$output" == *"Close this Terminal window and open a new one"* ]]
   [[ "$output" == *"make plan HOST=<host-id>"* ]]
   [[ "$output" == *"Do not run 'make all'"* ]]
   [[ "$output" == *"WORKFLOW: fresh"* ]]

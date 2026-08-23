@@ -84,6 +84,9 @@ login, it stops and prints the exact command that must be run interactively.
 
 After successful bootstrap:
 
+Close the bootstrap Terminal window and open a new one so the persisted login
+PATH is loaded. Then run:
+
 ```bash
 cd "$HOME/Projects/mac-setup"
 make plan HOST=<host-id>
