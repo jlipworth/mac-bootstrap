@@ -83,12 +83,22 @@ activate_homebrew() {
   fi
 }
 
+require_sudo() {
+  if sudo -n -v >/dev/null 2>&1; then
+    return
+  fi
+
+  log "Homebrew requires administrator access; macOS may prompt for your password."
+  sudo -v || die "Administrator access is required to install Homebrew."
+}
+
 install_homebrew() {
   activate_homebrew
   if command_exists brew; then
     log "Homebrew is installed."
     return
   fi
+  require_sudo
   NONINTERACTIVE=1 download_review_and_run \
     "Homebrew installer" "$HOMEBREW_INSTALL_URL" "${HOMEBREW_INSTALL_SHA256:-}"
   activate_homebrew

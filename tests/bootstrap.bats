@@ -70,6 +70,30 @@ teardown() { teardown_test_env; }
   [ "$status" -eq 0 ]
 }
 
+@test "cached administrator access is reused without prompting" {
+  mock_command sudo '[[ "$*" == "-n -v" ]]'
+  run require_sudo
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"may prompt"* ]]
+}
+
+@test "administrator access is requested before a noninteractive install" {
+  mock_command sudo '
+    if [[ "$*" == "-n -v" ]]; then exit 1; fi
+    [[ "$*" == "-v" ]]
+  '
+  run require_sudo
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"may prompt for your password"* ]]
+}
+
+@test "missing administrator access stops with a clear error" {
+  mock_command sudo 'exit 1'
+  run require_sudo
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"Administrator access is required"* ]]
+}
+
 @test "failed GitHub authentication stops in noninteractive mode" {
   mock_command gh 'exit 1'
   run authenticate_gh
