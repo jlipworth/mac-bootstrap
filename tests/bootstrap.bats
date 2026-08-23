@@ -221,3 +221,12 @@ teardown() { teardown_test_env; }
   [ "$status" -eq 0 ]
   [[ "$output" == *"doctor-ok"* ]]
 }
+
+@test "handoff directs fresh hosts to the plan and away from make all" {
+  export MAC_SETUP_CHECKOUT="$TEST_ROOT/Projects/mac-setup"
+  run print_handoff
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"make plan HOST=<host-id>"* ]]
+  [[ "$output" == *"Do not run 'make all'"* ]]
+  [[ "$output" == *"WORKFLOW: fresh"* ]]
+}

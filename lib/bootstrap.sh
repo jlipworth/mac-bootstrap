@@ -202,11 +202,19 @@ print_handoff() {
 Public bootstrap is complete.
 
 Private setup checkout: $checkout
-Resume or re-verify:     $(printf '%q' "${MB_BOOTSTRAP_PATH:-./bootstrap.sh}")
-Private handoff:         cd $(printf '%q' "$checkout") && make doctor-bootstrap
-Desktop Codex handoff:   codex app
 
-Review the private mac-setup runbook before applying host configuration.
+Next for an erased or freshly configured Mac:
+  1. cd $(printf '%q' "$checkout")
+  2. make plan HOST=<host-id>
+  3. Confirm the displayed identity, workflow, capabilities, and checkpoints.
+  4. Follow the private fresh-host runbook one gated action at a time.
+
+IMPORTANT: Do not run 'make all' when the host plan reports WORKFLOW: fresh.
+It is the Migration Assistant path, not the erased-host workflow.
+
+Optional re-check:       make doctor-bootstrap
+Desktop Codex handoff:   codex app
+Bootstrap resume:        $(printf '%q' "${MB_BOOTSTRAP_PATH:-./bootstrap.sh}")
 EOF
 }
 

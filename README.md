@@ -84,11 +84,14 @@ After successful bootstrap:
 
 ```bash
 cd "$HOME/Projects/mac-setup"
-make doctor-bootstrap
+make plan HOST=<host-id>
 codex app
 ```
 
-Continue only after reviewing the private repository's runbook.
+Confirm the plan's identity, workflow, capabilities, actions, and checkpoints,
+then follow the private repository's fresh-host runbook. Do not run `make all`
+when the plan reports `WORKFLOW: fresh`; that target belongs to the Migration
+Assistant workflow.
 
 ## Development
 
