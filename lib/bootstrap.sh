@@ -125,6 +125,36 @@ install_codex() {
   command_exists codex || die "Codex installer completed but codex is not available."
 }
 
+ensure_profile_line() {
+  local profile="$1" line="$2"
+  mkdir -p "$(dirname "$profile")"
+  touch "$profile"
+  grep -Fqx "$line" "$profile" 2>/dev/null || printf '%s\n' "$line" >>"$profile"
+}
+
+persist_shell_path() {
+  local profile="${MB_ZPROFILE:-$HOME/.zprofile}"
+
+  ensure_profile_line "$profile" '# Added by mac-bootstrap for fresh-host command availability.'
+  # These expressions must remain literal so the login shell evaluates them.
+  # shellcheck disable=SC2016
+  ensure_profile_line "$profile" 'eval "$(/opt/homebrew/bin/brew shellenv)"'
+  # shellcheck disable=SC2016
+  ensure_profile_line "$profile" 'export PATH="$HOME/.local/bin:$PATH"'
+
+  log "Persisted Homebrew and user-local commands in $profile."
+}
+
+verify_login_shell_path() {
+  local zsh_binary="${MB_ZSH_BINARY:-/bin/zsh}"
+
+  [[ -x "$zsh_binary" ]] || die "The macOS Zsh executable is missing: $zsh_binary"
+  HOME="$HOME" "$zsh_binary" -lic \
+    'command -v brew >/dev/null && command -v gh >/dev/null && command -v codex >/dev/null' \
+    || die "A clean Zsh login shell cannot resolve brew, gh, and codex."
+  log "A clean Zsh login shell resolves brew, gh, and codex."
+}
+
 login_gh() {
   # Avoid gh's terminal UI: it can hang in remote terminals that do not answer
   # cursor-position queries. Authentication still happens in GitHub's browser
@@ -233,6 +263,8 @@ bootstrap_main() {
   run_step homebrew install_homebrew
   run_step github-cli install_gh
   run_step codex-cli install_codex
+  run_step shell-path persist_shell_path
+  run_step shell-path-verification verify_login_shell_path
   run_step github-auth authenticate_gh
   run_step codex-auth authenticate_codex
   run_step private-checkout checkout_mac_setup

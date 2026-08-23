@@ -70,6 +70,32 @@ teardown() { teardown_test_env; }
   [ "$status" -eq 0 ]
 }
 
+@test "fresh-host command paths are persisted idempotently for Zsh" {
+  local profile="$HOME/.zprofile"
+  export MB_ZPROFILE="$profile"
+
+  run persist_shell_path
+  [ "$status" -eq 0 ]
+  run persist_shell_path
+  [ "$status" -eq 0 ]
+
+  [ "$(grep -Fxc 'eval "$(/opt/homebrew/bin/brew shellenv)"' "$profile")" -eq 1 ]
+  [ "$(grep -Fxc 'export PATH="$HOME/.local/bin:$PATH"' "$profile")" -eq 1 ]
+}
+
+@test "a clean Zsh login must resolve all bootstrap commands" {
+  mock_command zsh '
+    [[ "$1" == "-lic" ]]
+    [[ "$2" == *"command -v brew"* ]]
+    [[ "$2" == *"command -v gh"* ]]
+    [[ "$2" == *"command -v codex"* ]]
+  '
+  export MB_ZSH_BINARY="$MOCK_BIN/zsh"
+  run verify_login_shell_path
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"clean Zsh login shell resolves"* ]]
+}
+
 @test "cached administrator access is reused without prompting" {
   mock_command sudo '[[ "$*" == "-n -v" ]]'
   run require_sudo

@@ -20,10 +20,12 @@ storage. The only private resource named here is the intended
    re-run after it completes.
 3. Installs Homebrew from a downloaded temporary installer.
 4. Installs GitHub CLI and the official standalone Codex CLI.
-5. Performs interactive `gh` and Codex login when needed.
-6. Clones `mac-setup` to `~/Projects/mac-setup`, verifies its origin and branch,
+5. Persists Homebrew and `~/.local/bin` in the normal Zsh login environment and
+   verifies a clean login shell can resolve `brew`, `gh`, and `codex`.
+6. Performs interactive `gh` and Codex login when needed.
+7. Clones `mac-setup` to `~/Projects/mac-setup`, verifies its origin and branch,
    and runs `make doctor-bootstrap`.
-7. Prints the private setup and Codex desktop-app handoff commands.
+8. Prints the private setup and Codex desktop-app handoff commands.
 
 Every step verifies current state before acting, so an interrupted run can be
 resumed by running the script again. It never removes an existing Homebrew or
