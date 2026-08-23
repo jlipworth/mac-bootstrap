@@ -27,6 +27,9 @@ validate_platform() {
 }
 
 require_clt() {
+  local wait_seconds="${MB_CLT_WAIT_SECONDS:-3600}"
+  local started_at="$SECONDS"
+
   if xcode-select -p >/dev/null 2>&1; then
     log "Command Line Tools are installed."
     return
@@ -34,7 +37,16 @@ require_clt() {
 
   log "Requesting the Command Line Tools installer."
   xcode-select --install >/dev/null 2>&1 || true
-  die "Complete the Command Line Tools dialog, then re-run the bootstrap."
+  [[ "$wait_seconds" =~ ^[0-9]+$ ]] || die "MB_CLT_WAIT_SECONDS must be a non-negative integer."
+  log "Complete the Command Line Tools dialog; this bootstrap will continue automatically."
+
+  while ! xcode-select -p >/dev/null 2>&1; do
+    ((SECONDS - started_at < wait_seconds)) \
+      || die "Command Line Tools were not installed within ${wait_seconds} seconds."
+    sleep 5
+  done
+
+  log "Command Line Tools are installed."
 }
 
 download_review_and_run() (

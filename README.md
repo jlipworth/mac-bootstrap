@@ -31,8 +31,21 @@ Codex installation.
 
 ## First use
 
-Do not pipe a network response directly into a shell. Download, inspect, verify,
-and then run the released script:
+Paste this single command into Terminal. It downloads the standalone release,
+verifies its published checksum, and runs it without piping network content
+directly into a shell:
+
+```bash
+d="$(mktemp -d)" && cd "$d" && curl --fail --location --proto '=https' --tlsv1.2 --remote-name https://github.com/jlipworth/mac-bootstrap/releases/latest/download/bootstrap.sh --remote-name https://github.com/jlipworth/mac-bootstrap/releases/latest/download/bootstrap.sh.sha256 && shasum -a 256 --check bootstrap.sh.sha256 && chmod +x bootstrap.sh && ./bootstrap.sh
+```
+
+If Command Line Tools are absent, the command opens Apple's installer and
+waits for it to finish before continuing. The same bootstrap process then
+installs Homebrew, GitHub CLI, and Codex; performs the interactive logins; and
+checks out the private setup repository. You do not need to rerun the command
+after completing the Command Line Tools dialog.
+
+For a deliberate source review before execution, use the expanded form:
 
 ```bash
 curl --fail --location --proto '=https' --tlsv1.2 \
@@ -44,9 +57,6 @@ less bootstrap.sh
 chmod +x bootstrap.sh
 ./bootstrap.sh
 ```
-
-Until the first release exists, clone the repository, inspect it, and run
-`./bootstrap.sh` from the checkout.
 
 ### Optional installer pinning
 

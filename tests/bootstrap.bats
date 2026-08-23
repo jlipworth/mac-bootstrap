@@ -32,12 +32,30 @@ teardown() { teardown_test_env; }
   [[ "$output" == *"installed"* ]]
 }
 
-@test "a missing Command Line Tools install requests GUI completion" {
+@test "a missing Command Line Tools install times out with a resumable error" {
   mock_command xcode-select 'exit 1'
+  export MB_CLT_WAIT_SECONDS=0
   run require_clt
   [ "$status" -ne 0 ]
-  [[ "$output" == *"Complete the Command Line Tools dialog"* ]]
-  [[ "$output" == *"re-run"* ]]
+  [[ "$output" == *"continue automatically"* ]]
+  [[ "$output" == *"were not installed"* ]]
+  [[ "$output" == *"Re-run"* ]]
+}
+
+@test "a Command Line Tools install continues without rerunning bootstrap" {
+  local marker="$TEST_ROOT/xcode-select-installed"
+  export MB_TEST_CLT_MARKER="$marker"
+  mock_command xcode-select '
+    if [[ "$1" == "--install" ]]; then
+      touch "$MB_TEST_CLT_MARKER"
+      exit 0
+    fi
+    [[ "$1" == "-p" && -f "$MB_TEST_CLT_MARKER" ]]
+  '
+  run require_clt
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"continue automatically"* ]]
+  [[ "$output" == *"Command Line Tools are installed"* ]]
 }
 
 @test "existing Homebrew, gh, and Codex commands are reused" {
